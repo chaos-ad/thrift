@@ -90,7 +90,7 @@ endif
 libthriftnb_la_SOURCES = src/server/TNonblockingServer.cpp \
                          src/async/TAsyncProtocolProcessor.cpp \
                          src/async/TEvhttpServer.cpp \
-                         src/async/TEvhttpClientChannel.cpp 
+                         src/async/TEvhttpClientChannel.cpp
 
 libthriftz_la_SOURCES = src/transport/TZlibTransport.cpp
 
@@ -110,6 +110,7 @@ endif
 include_thriftdir = $(includedir)/thrift
 include_thrift_HEADERS = \
                          $(top_builddir)/config.h \
+                         src/ErlUtils.h \
                          src/Thrift.h \
                          src/TReflectionLocal.h \
                          src/TProcessor.h \

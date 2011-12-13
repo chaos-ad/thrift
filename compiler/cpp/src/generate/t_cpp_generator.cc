@@ -69,6 +69,9 @@ class t_cpp_generator : public t_oop_generator {
     iter = parsed_options.find("templates");
     gen_templates_ = (iter != parsed_options.end());
 
+    iter = parsed_options.find("erl_nif");
+    gen_erl_helpers_ = (iter != parsed_options.end());
+
     out_dir_base_ = "gen-cpp";
   }
 
@@ -247,6 +250,11 @@ class t_cpp_generator : public t_oop_generator {
   bool gen_templates_;
 
   /**
+   * True if we should generate Erlang NIF reader/writer methods.
+   */
+  bool gen_erl_helpers_;
+
+  /**
    * True if we should use a path prefix in our #include statements for other
    * thrift-generated header files.
    */
@@ -342,6 +350,10 @@ void t_cpp_generator::init_generator() {
     "#include <protocol/TProtocol.h>" << endl <<
     "#include <transport/TTransport.h>" << endl <<
     endl;
+
+  if(gen_erl_helpers_) {
+    f_types_ << "#include <ErlUtils.h>" << endl;
+  }
 
   // Include other Thrift includes
   const vector<t_program*>& includes = program_->get_includes();
@@ -4495,5 +4507,6 @@ THRIFT_REGISTER_GENERATOR(cpp, "C++",
 "    pure_enums:      Generate pure enums instead of wrapper classes.\n"
 "    dense:           Generate type specifications for the dense protocol.\n"
 "    include_prefix:  Use full include paths in generated files.\n"
+"    erl_nif:         Generate reader/writer methods for Erlang NIF"
 )
 
