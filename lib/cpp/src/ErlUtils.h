@@ -276,7 +276,7 @@ inline ERL_NIF_TERM write_value(ErlNifEnv* env, std::set<T> const& value)
     typename std::set<T>::const_iterator i, end = value.end();
     for( i = value.begin(); i != end; ++i )
     {
-        terms.push_back( put_value(env, *i) );
+        terms.push_back( write_value(env, *i) );
     }
     return enif_make_list_from_array(env, terms.data(), terms.size());
 }
@@ -288,7 +288,7 @@ inline ERL_NIF_TERM write_value(ErlNifEnv* env, std::list<T> const& value)
     typename std::list<T>::const_iterator i, end = value.end();
     for( i = value.begin(); i != end; ++i )
     {
-        terms.push_back( put_value(env, *i) );
+        terms.push_back( write_value(env, *i) );
     }
     return enif_make_list_from_array(env, terms.data(), terms.size());
 }
@@ -300,7 +300,7 @@ inline ERL_NIF_TERM write_value(ErlNifEnv* env, std::vector<T> const& value)
     typename std::vector<T>::const_iterator i, end = value.end();
     for( i = value.begin(); i != end; ++i )
     {
-        terms.push_back( put_value(env, *i) );
+        terms.push_back( write_value(env, *i) );
     }
     return enif_make_list_from_array(env, terms.data(), terms.size());
 }
@@ -313,9 +313,9 @@ inline ERL_NIF_TERM write_value(ErlNifEnv* env, std::map<K, V> const& value)
     for( i = value.begin(); i != end; ++i )
     {
         std::vector<ERL_NIF_TERM> tuple(2);
-        tuple[0] = put_value(env, i->first);
-        tuple[1] = put_value(env, i->second);
-        terms.push_back( put_value(env, tuple) );
+        tuple[0] = write_value(env, i->first);
+        tuple[1] = write_value(env, i->second);
+        terms.push_back( write_value(env, tuple) );
     }
     return enif_make_list_from_array(env, terms.data(), terms.size());
 }
