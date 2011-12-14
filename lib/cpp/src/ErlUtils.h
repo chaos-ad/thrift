@@ -33,6 +33,9 @@
 #include <boost/optional.hpp>
 #include <boost/mpl/identity.hpp>
 
+#include <protocol/TBinaryProtocol.h>
+#include <transport/TBufferTransports.h>
+
 #include <erl_nif.h>
 
 /////////////////////////////////////////////////////////////////////////////
@@ -46,6 +49,11 @@ struct atom_t : std::string
     atom_t(std::string const& str) : std::string(str) {}
 };
 
+struct enomem : public std::runtime_error
+{
+    enomem() : runtime_error("enomem") {}
+};
+
 struct invalid_type : public std::runtime_error
 {
     invalid_type() : runtime_error("invalid_type") {}
@@ -55,9 +63,6 @@ struct invalid_type : public std::runtime_error
 
 template <typename T>
 T read_value(ErlNifEnv* env, ERL_NIF_TERM term);
-
-template <typename T>
-ERL_NIF_TERM write_value(ErlNifEnv* env, T const& obj);
 
 template <typename T>
 boost::optional<T> read_optional(ErlNifEnv* env, ERL_NIF_TERM term);
@@ -374,6 +379,49 @@ inline void check_record(ErlNifEnv * env, ERL_NIF_TERM term, std::string atom)
         out << "Invalid record: " << recordname << "; expected: " << atom << std::endl;
         throw std::runtime_error(out.str());
     }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+template <class T>
+ERL_NIF_TERM pack(ErlNifEnv * env, ERL_NIF_TERM const term)
+{
+    T object = read_value<T>(env, term);
+
+    using namespace apache::thrift::protocol;
+    using namespace apache::thrift::transport;
+
+    boost::shared_ptr<TMemoryBuffer> buffer(new TMemoryBuffer());
+    boost::shared_ptr<TBinaryProtocol> proto(new TBinaryProtocol(buffer));
+
+    object.write(proto.get());
+    std::string data = buffer.get()->getBufferAsString();
+
+    ErlNifBinary binary;
+    if (!enif_alloc_binary(data.size(), &binary)) {
+        throw enomem();
+    }
+    std::copy(data.begin(), data.end(), binary.data);
+    return enif_make_binary(env, &binary);
+}
+
+template <class T>
+ERL_NIF_TERM unpack(ErlNifEnv * env, ERL_NIF_TERM term)
+{
+    using namespace apache::thrift::transport;
+    using namespace apache::thrift::protocol;
+
+    ErlNifBinary binary;
+    if (!enif_inspect_binary(env, term, &binary)) {
+        throw apache::thrift::erl_helpers::invalid_type();
+    }
+
+    boost::shared_ptr<TMemoryBuffer> buffer(new TMemoryBuffer(binary.data, binary.size));
+    boost::shared_ptr<TBinaryProtocol> proto(new TBinaryProtocol(buffer));
+    T object;
+    object.read(proto.get());
+
+    return write_value(env, object);
 }
 
 /////////////////////////////////////////////////////////////////////////////
