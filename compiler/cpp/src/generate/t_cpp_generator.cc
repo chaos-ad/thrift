@@ -298,6 +298,8 @@ class t_cpp_generator : public t_oop_generator {
   std::ofstream f_erl_nif_c_;
   std::ofstream f_erl_nif_h_;
 
+  std::vector<std::string> structs_;
+
 //   std::stringstream f_erl_nif_c_;
 
   /**
@@ -472,6 +474,41 @@ void t_cpp_generator::close_generator() {
       "#include \"" << get_include_prefix(*get_program()) << program_name_ <<
       "_types.tcc\"" << endl <<
       endl;
+  }
+
+
+  if (!structs_.empty())
+  {
+    f_erl_nif_h_ << std::string(78, '/') << endl << endl;
+    f_erl_nif_c_ << std::string(78, '/') << endl << endl;
+    f_erl_nif_h_ << indent() << "namespace " << program_name_ << "_nif {" << endl;
+    f_erl_nif_c_ << indent() << "namespace " << program_name_ << "_nif {" << endl;
+    indent_up();
+    f_erl_nif_h_ << indent() << "std::map<std::string, ::apache::thrift::erl_helpers::api_fn_t> get_pack_functions();" << endl;
+    f_erl_nif_c_ << indent() << "std::map<std::string, ::apache::thrift::erl_helpers::api_fn_t> get_pack_functions() {" << endl;
+    indent_up();
+    f_erl_nif_c_ << indent() << "std::map<std::string, api_fn_t> result;" << endl;
+    std::vector<std::string>::const_iterator i, end = structs_.end();
+    for( i = structs_.begin(); i != end; ++i ) {
+        f_erl_nif_c_ << indent() << "result[\"" << uncapitalize(*i) << "\"] = &pack<" << *i << ">;" << endl;
+    }
+    f_erl_nif_c_ << indent() << "return result;" << endl;
+    indent_down();
+    f_erl_nif_c_ << indent() << "}" << endl << endl;
+
+    f_erl_nif_h_ << indent() << "std::map<std::string, ::apache::thrift::erl_helpers::api_fn_t> get_unpack_functions();" << endl;
+    f_erl_nif_c_ << indent() << "std::map<std::string, ::apache::thrift::erl_helpers::api_fn_t> get_unpack_functions() {" << endl;
+    indent_up();
+    f_erl_nif_c_ << indent() << "std::map<std::string, api_fn_t> result;" << endl;
+    for( i = structs_.begin(); i != end; ++i ) {
+        f_erl_nif_c_ << indent() << "result[\"" << uncapitalize(*i) << "\"] = &unpack<" << *i << ">;" << endl;
+    }
+    f_erl_nif_c_ << indent() << "return result;" << endl;
+    indent_down();
+    f_erl_nif_c_ << indent() << "}" << endl << endl;
+    indent_down();
+    f_erl_nif_h_ << indent() << "} // namespace " << program_name_ << "_nif" << endl << endl;
+    f_erl_nif_c_ << indent() << "} // namespace " << program_name_ << "_nif" << endl << endl;
   }
 
   // Close ifndef
@@ -1451,7 +1488,9 @@ void t_cpp_generator::generate_struct_writer(ofstream& out,
 void t_cpp_generator::generate_struct_erl_writer(t_struct* tstruct) {
 
   string name = tstruct->get_name();
-  const vector<t_field*>& fields = tstruct->get_sorted_members();
+  const vector<t_field*>& fields = tstruct->get_members();
+
+  structs_.push_back(name);
 
   f_erl_nif_h_ << indent() << name << " read_value(ErlNifEnv* env, ERL_NIF_TERM term, boost::mpl::identity< " << name << " > );" << endl;
   f_erl_nif_c_ << indent() << name << " read_value(ErlNifEnv* env, ERL_NIF_TERM term, boost::mpl::identity< " << name << " > ) {" << endl;

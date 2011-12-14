@@ -42,7 +42,10 @@
 
 namespace apache { namespace thrift { namespace erl_helpers {
 
+
+
 typedef std::vector<ERL_NIF_TERM> tuple_t;
+typedef ERL_NIF_TERM (*api_fn_t)(ErlNifEnv * env, ERL_NIF_TERM term);
 
 struct atom_t : std::string
 {
