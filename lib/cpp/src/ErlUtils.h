@@ -121,18 +121,25 @@ inline double read_value(ErlNifEnv* env, ERL_NIF_TERM term, boost::mpl::identity
 
 inline std::string read_value(ErlNifEnv* env, ERL_NIF_TERM term, boost::mpl::identity<std::string>)
 {
+    // Try binary first
+    ErlNifBinary binary;
+    if (enif_inspect_binary(env, term, &binary)) {
+        return std::string(reinterpret_cast<char*>(binary.data), binary.size);
+    }
+
+    // Then try a list
     unsigned int length = 0;
-    if (!enif_get_list_length(env, term, &length)) {
-        throw invalid_type();
+    if (enif_get_list_length(env, term, &length)) {
+        std::vector<char> buf(length+1, 0);
+        std::size_t sz = enif_get_string(env, term, buf.data(), buf.size(), ERL_NIF_LATIN1);
+        if (sz != buf.size()) {
+            throw invalid_type();
+        }
+
+        return std::string(buf.data());
     }
 
-    std::vector<char> buf(length+1, 0);
-    if (!enif_get_string(env, term, buf.data(), buf.size(), ERL_NIF_LATIN1) != buf.size()) {
-        throw invalid_type();
-    }
-
-    std::string result(buf.data());
-    return result;
+    throw invalid_type();
 }
 
 inline atom_t read_value(ErlNifEnv* env, ERL_NIF_TERM term, boost::mpl::identity<atom_t>)
@@ -263,7 +270,12 @@ inline ERL_NIF_TERM write_value(ErlNifEnv* env, double value)
 
 inline ERL_NIF_TERM write_value(ErlNifEnv* env, std::string const& value)
 {
-    return enif_make_string(env, value.c_str(), ERL_NIF_LATIN1);
+    ErlNifBinary binary;
+    if (!enif_alloc_binary(value.size(), &binary)) {
+        throw enomem();
+    }
+    std::copy(value.begin(), value.end(), binary.data);
+    return enif_make_binary(env, &binary);
 }
 
 inline ERL_NIF_TERM write_value(ErlNifEnv* env, atom_t const& value)
@@ -416,7 +428,7 @@ ERL_NIF_TERM unpack(ErlNifEnv * env, ERL_NIF_TERM term)
 
     ErlNifBinary binary;
     if (!enif_inspect_binary(env, term, &binary)) {
-        throw apache::thrift::erl_helpers::invalid_type();
+        throw invalid_type();
     }
 
     boost::shared_ptr<TMemoryBuffer> buffer(new TMemoryBuffer(binary.data, binary.size));
