@@ -1505,8 +1505,8 @@ void t_cpp_generator::generate_struct_erl_writer(t_struct* tstruct) {
   {
     t_field * field = fields[i];
 
-    bool is_opt = (field->get_req() == t_field::T_OPTIONAL);
-    std::string funname = is_opt ? "read_optional_field" : "read_required_field";
+    bool is_req = (field->get_req() == t_field::T_REQUIRED);
+    std::string funname = is_req ? "read_required_field" : "read_optional_field";
 
     f_erl_nif_c_ << indent()
       <<  funname
