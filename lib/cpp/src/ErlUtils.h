@@ -103,8 +103,8 @@ inline int32_t read_value(ErlNifEnv* env, ERL_NIF_TERM term, boost::mpl::identit
 
 inline int64_t read_value(ErlNifEnv* env, ERL_NIF_TERM term, boost::mpl::identity<int64_t>)
 {
-    long int result;
-    if (!enif_get_long(env, term, &result)) {
+    int64_t result;
+    if (!enif_get_int64(env, term, &result)) {
         throw invalid_type();
     }
     return result;
@@ -114,7 +114,7 @@ inline double read_value(ErlNifEnv* env, ERL_NIF_TERM term, boost::mpl::identity
 {
     double result;
     if (!enif_get_double(env, term, &result)) {
-        throw invalid_type();
+        return read_value<int64_t>(env, term);
     }
     return result;
 }
